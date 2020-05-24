@@ -1,0 +1,2 @@
+rootProject.name='MyFavoriteBooks'
+include ':app'
