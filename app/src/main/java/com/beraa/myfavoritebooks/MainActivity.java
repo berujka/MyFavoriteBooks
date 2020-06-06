@@ -10,6 +10,8 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
@@ -34,7 +36,17 @@ public class MainActivity extends AppCompatActivity {
 
         arrayAdapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1,nameArray);
         listView.setAdapter(arrayAdapter);
-        
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent = new Intent(MainActivity.this, Main2Activity.class);
+                intent.putExtra("bookId", idArray.get(position));
+                intent.putExtra("info", "old");
+                startActivity(intent);
+            }
+        });
+
 
         getData();
     }
@@ -72,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
 
         if(item.getItemId() == R.id.add_book_item){
             Intent intent = new Intent(MainActivity.this, Main2Activity.class);
+            intent.putExtra("info", "new");
             startActivity(intent);
         }
 

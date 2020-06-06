@@ -9,9 +9,11 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteStatement;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageDecoder;
 import android.net.Uri;
 import android.os.Build;
@@ -31,6 +33,7 @@ public class Main2Activity extends AppCompatActivity {
     ImageView imageView;
     EditText booksNameText, authorNameText;
     Button button;
+    SQLiteDatabase database;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,7 +45,43 @@ public class Main2Activity extends AppCompatActivity {
         authorNameText = findViewById(R.id.authorNameText);
         button = findViewById(R.id.button);
 
-        
+        SQLiteDatabase database = this.openOrCreateDatabase("Books", MODE_PRIVATE, null);
+
+        Intent intent = getIntent();
+        String info = intent.getStringExtra("info");
+
+        if(info.matches("new")){
+            booksNameText.setText("");
+            authorNameText.setText("");
+            button.setVisibility(View.VISIBLE);
+        }else{
+            int bookId = intent.getIntExtra("bookId", 1);
+            button.setVisibility(View.INVISIBLE);
+
+            try {
+                Cursor cursor = database.rawQuery("SELECT * FROM books WHERE id = ?", new String[] {String.valueOf(bookId)});
+
+                int bookNameIx = cursor.getColumnIndex("bookname");
+                int authorNameIx = cursor.getColumnIndex("authorname");
+                int imageIx = cursor.getColumnIndex("image");
+
+                while(cursor.moveToNext()){
+                    booksNameText.setText(cursor.getString(bookNameIx));
+                    authorNameText.setText(cursor.getString(authorNameIx));
+
+                    byte[] bytes = cursor.getBlob(imageIx);
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0,bytes.length);
+                    imageView.setImageBitmap(bitmap);
+
+                }
+
+                cursor.close();
+
+            }catch (Exception e){
+
+            }
+        }
+
     }
 
     public void selectImage(View view){
@@ -104,7 +143,7 @@ public class Main2Activity extends AppCompatActivity {
         byte[] byteArray = outputStream.toByteArray();
 
         try{
-            SQLiteDatabase database = this.openOrCreateDatabase("Books", MODE_PRIVATE, null);
+            database = this.openOrCreateDatabase("Books", MODE_PRIVATE, null);
             database.execSQL("CREATE TABLE IF NOT EXISTS books (id INTEGER PRIMARY KEY, bookname VARCHAR, authorname VARCHAR, image BLOB)");
 
             String sqlString = "INSERT INTO books (bookname, authorname, image) VALUES (?, ?, ?)";
