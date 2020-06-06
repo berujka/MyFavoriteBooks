@@ -1,6 +1,7 @@
 package com.beraa.myfavoritebooks;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -8,16 +9,38 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
+import android.graphics.Bitmap;
+import android.graphics.ImageDecoder;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 public class Main2Activity extends AppCompatActivity {
+
+    Bitmap selectedImage;
+    ImageView imageView;
+    EditText booksNameText, authorNameText;
+    Button button;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main2);
+
+        imageView = findViewById(R.id.imageView);
+        booksNameText = findViewById(R.id.booksName);
+        authorNameText = findViewById(R.id.authorNameText);
+        button = findViewById(R.id.button);
 
         
     }
@@ -46,8 +69,72 @@ public class Main2Activity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
-    public void save(View view){
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
 
+        if(requestCode == 2 && resultCode == RESULT_OK && data != null){
+            Uri imageData = data.getData();
+
+            try {
+                if(Build.VERSION.SDK_INT >=28){
+                    ImageDecoder.Source source = ImageDecoder.createSource(this.getContentResolver(), imageData);
+                    selectedImage = ImageDecoder.decodeBitmap(source);
+                    imageView.setImageBitmap(selectedImage);
+                }else{
+                    selectedImage = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageData);
+                    imageView.setImageBitmap(selectedImage);
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    public void save(View view){
+        String bookName = booksNameText.getText().toString();
+        String authorName = authorNameText.getText().toString();
+
+        Bitmap smallImage = makeSmallerImage(selectedImage, 300);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        smallImage.compress(Bitmap.CompressFormat.PNG, 50, outputStream);
+        byte[] byteArray = outputStream.toByteArray();
+
+        try{
+            SQLiteDatabase database = this.openOrCreateDatabase("Books", MODE_PRIVATE, null);
+            database.execSQL("CREATE TABLE IF NOT EXISTS books (id INTEGER PRIMARY KEY, bookname VARCHAR, authorname VARCHAR, image BLOB)");
+
+            String sqlString = "INSERT INTO books (bookname, authorname, image) VALUES (?, ?, ?)";
+            SQLiteStatement sqLiteStatement = database.compileStatement(sqlString);
+            sqLiteStatement.bindString(1, bookName);
+            sqLiteStatement.bindString(2,authorName);
+            sqLiteStatement.bindBlob(3, byteArray);
+            sqLiteStatement.execute();
+        }catch (Exception e){
+
+        }
+        finish();
+
+    }
+
+    public Bitmap makeSmallerImage(Bitmap image, int maxSize) {
+
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        float ratio = (float) width / (float) height;
+
+        if(ratio >1){
+            width = maxSize;
+            height = (int) (width / ratio);
+        } else {
+            height = maxSize;
+            width = (int) (height * ratio);
+        }
+        return Bitmap.createScaledBitmap(image,width,height,true);
     }
 
 }
