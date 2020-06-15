@@ -155,8 +155,12 @@ public class Main2Activity extends AppCompatActivity {
         }catch (Exception e){
 
         }
-        finish();
 
+        Intent intent = new Intent(Main2Activity.this,MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(intent);
+
+        //finish();
     }
 
     public Bitmap makeSmallerImage(Bitmap image, int maxSize) {
